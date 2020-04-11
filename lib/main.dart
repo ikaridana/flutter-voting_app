@@ -3,14 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() => runApp(MyApp());
 
-final dummySnapshot = [
-  {"Name" : "Filip", "votes": 15},
-  {"Name" : "Filip", "votes": 15},
-  {"Name" : "Filip", "votes": 15},
-  {"Name" : "Filip", "votes": 15},
-  {"Name" : "Filip", "votes": 15}
-];
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -40,19 +32,24 @@ class _VotingAppState extends State<VotingApp> {
   }
 
   Widget _buildBody(BuildContext context) {
-
-    return _buildList(context, dummySnapshot);
+    return StreamBuilder<QuerySnapshot>(
+      stream: Firestore.instance.collection('baby').snapshots(),
+      builder: (context, snapshot){
+        if(!snapshot.hasData) return LinearProgressIndicator();
+        return _buildList(context, snapshot.data.documents);
+      },
+    );
   }
 
-  Widget _buildList(BuildContext context, List<Map> snapshot){
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot){
     return ListView(
       padding: const EdgeInsets.only(top: 10.0),
       children: snapshot.map((data) => _buildListItem(context, data)).toList(),
     );
   }
 
-  Widget _buildListItem(BuildContext context, Map data){
-    final record = Record.fromMap(data);
+  Widget _buildListItem(BuildContext context, DocumentSnapshot data){
+    final record = Record.fromSnapshot(data);
     return Padding(
       key: ValueKey(record.name),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -64,7 +61,7 @@ class _VotingAppState extends State<VotingApp> {
         child: ListTile(
           title: Text(record.name),
           trailing: Text(record.votes.toString()),
-          onTap: () => print(record),
+          onTap: () => record.reference.updateData({'votes':FieldValue.increment(1)}),
         ),
       ),
     );
